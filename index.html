@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sơ đồ bàn tiệc cưới</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: #f5f5f5; 
+            padding: 20px; 
+        }
+        .container { 
+            max-width: 1400px; 
+            margin: 0 auto; 
+            background: white; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1); 
+            padding: 30px; 
+        }
+        h1 { 
+            text-align: center; 
+            color: #333; 
+            margin-bottom: 10px; 
+            font-size: 28px; 
+        }
+        .subtitle { 
+            text-align: center; 
+            color: #666; 
+            margin-bottom: 25px; 
+            font-size: 14px; 
+        }
+        .chart-wrapper { 
+            background: white; 
+            padding: 20px; 
+            border-radius: 8px; 
+            margin-bottom: 30px; 
+        }
+        #seating-chart { 
+            display: flex; 
+            justify-content: center; 
+            overflow-x: auto;
+        }
+        .stage-text { 
+            font-family: Arial, sans-serif; 
+            font-size: 24px; 
+            fill: white; 
+        }
+        .table-number { 
+            font-size: 14px; 
+            font-weight: bold; 
+            fill: #333; 
+        }
+        .legend { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); 
+            gap: 12px; 
+            padding: 20px; 
+            background: #f9f9f9; 
+            border-radius: 8px; 
+        }
+        .legend-item { 
+            display: flex; 
+            align-items: center; 
+            gap: 10px; 
+            padding: 12px; 
+            background: white; 
+            border-radius: 6px; 
+            transition: all 0.2s; 
+            cursor: pointer;
+            border: 2px solid transparent;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .legend-item:hover, .legend-item:active { 
+            transform: translateX(5px); 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
+            border-color: #2196F3;
+        }
+        .legend-color { 
+            width: 30px; 
+            height: 30px; 
+            border-radius: 50%; 
+            border: 2px solid #ddd; 
+            flex-shrink: 0; 
+        }
+        .legend-text { 
+            font-size: 13px; 
+            color: #333; 
+            font-weight: 500; 
+            flex: 1;
+        }
+        .legend-count { 
+            font-size: 12px; 
+            color: #666; 
+        }
+        .tooltip { 
+            position: fixed; 
+            background: rgba(0, 0, 0, 0.9); 
+            color: white; 
+            padding: 8px 12px; 
+            border-radius: 6px; 
+            font-size: 13px; 
+            pointer-events: none; 
+            z-index: 1000; 
+            white-space: nowrap; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3); 
+            display: none;
+        }
+        .tooltip.show {
+            display: block;
+        }
+        
+        /* Mobile optimizations */
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .container { padding: 15px; }
+            h1 { font-size: 22px; }
+            .subtitle { font-size: 12px; }
+            .legend { 
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); 
+                gap: 8px; 
+                padding: 15px;
+            }
+            .legend-item { padding: 10px; }
+            .legend-text { font-size: 12px; }
+            #seating-chart { padding-bottom: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        const TABLE_CONFIG = {
+            1: "Gia đình nhà trai", 2: "Gia đình nhà trai", 3: "Gia đình nhà trai", 4: "Gia đình nhà trai",
+            5: "Họ hàng xa", 6: "Bạn cô dâu", 7: "Đồng nghiệp cô dâu", 8: "Họ hàng xa",
+            9: "Hàng xóm", 10: "Bạn cô dâu", 11: "Đồng học cô dâu", 12: "Hàng xóm",
+            13: "Ban tổ chức", 14: "Đồng nghiệp", 15: "Đồng học cô dâu", 16: "Hàng xóm",
+            17: "Ban nhạc", 18: "Họ hàng xa", 19: "Ban tổ chức",
+            20: "Gia đình nhà gái", 21: "Bạn chú rể", 22: "Đồng nghiệp chú rể", 23: "Gia đình nhà gái",
+            24: "Bạn chú rể", 25: "Đồng nghiệp chú rể", 26: "Họ hàng xa", 27: "Bạn chú rể",
+            28: "Đồng học chú rể", 29: "Hàng xóm", 30: "Ban tổ chức", 31: "Đồng nghiệp",
+            32: "Đồng học chú rể", 33: "Ban nhạc", 34: "Họ hàng xa", 35: "Hàng xóm",
+            36: "Đồng nghiệp cô dâu", 37: "Bạn cô dâu", 38: "Đồng học chú rể",
+            39: "Đồng nghiệp", 40: "Bạn cô dâu", 41: "Bạn chú rể", 42: "Đồng học cô dâu",
+            43: "Đồng học chú rể", 44: "Họ hàng xa", 45: "Hàng xóm", 46: "Ban tổ chức",
+            47: "Bạn cô dâu", 48: "Bạn chú rể", 49: "Đồng nghiệp cô dâu", 50: "Đồng nghiệp chú rể",
+            51: "Ban tổ chức", 52: "Họ hàng xa",
+            53: "Đồng học cô dâu", 54: "Đồng học chú rể", 55: "Bạn cô dâu", 56: "Bàn trống",
+        };
+
+        const GROUP_COLORS = {
+            "Gia đình nhà trai": "#FF6B6B", "Gia đình nhà gái": "#4ECDC4",
+            "Bạn cô dâu": "#FFD93D", "Bạn chú rể": "#95E1D3",
+            "Đồng nghiệp": "#A8E6CF", "Đồng nghiệp cô dâu": "#98D8C8",
+            "Đồng nghiệp chú rể": "#6BCF7F", "Đồng học cô dâu": "#FFA07A",
+            "Đồng học chú rể": "#F7DC6F", "Hàng xóm": "#DDA15E",
+            "Họ hàng xa": "#BC6C25", "Ban nhạc": "#9B59B6",
+            "Ban tổ chức": "#E91E63", "Bàn trống": "#E0E0E0",
+        };
+
+        const TOTAL_TABLES = 56;
+
+        const WeddingSeatingChart = () => {
+            const [hoveredGroup, setHoveredGroup] = useState(null);
+            const [tooltip, setTooltip] = useState({ show: false, x: 0, y: 0, text: '' });
+            
+            const tables = Array.from({ length: TOTAL_TABLES }, (_, i) => ({
+                number: i + 1,
+                tag: TABLE_CONFIG[i + 1] || "Chưa phân loại"
+            }));
+
+            const groupedTables = tables.reduce((acc, table) => {
+                if (!acc[table.tag]) acc[table.tag] = [];
+                acc[table.tag].push(table.number);
+                return acc;
+            }, {});
+
+            const layoutTables = (tables) => {
+                const fixedPositions = {};
+                const gap = 72;
+                const leftStartX = 165;
+                const rightStartX = 760;
+                const startY = 150;
+                
+                fixedPositions[1] = { x: leftStartX, y: startY };
+                fixedPositions[2] = { x: leftStartX + gap, y: startY };
+                fixedPositions[3] = { x: leftStartX + 2 * gap, y: startY };
+                fixedPositions[4] = { x: leftStartX + 3 * gap, y: startY };
+                fixedPositions[5] = { x: leftStartX, y: startY + gap };
+                fixedPositions[6] = { x: leftStartX + gap, y: startY + gap };
+                fixedPositions[7] = { x: leftStartX + 2 * gap, y: startY + gap };
+                fixedPositions[8] = { x: leftStartX + 3 * gap, y: startY + gap };
+                fixedPositions[9] = { x: leftStartX, y: startY + 2.5 * gap };
+                fixedPositions[10] = { x: leftStartX + gap, y: startY + 2 * gap };
+                fixedPositions[11] = { x: leftStartX + 2 * gap, y: startY + 2 * gap };
+                fixedPositions[12] = { x: leftStartX + 3 * gap, y: startY + 2 * gap };
+                fixedPositions[13] = { x: leftStartX + gap, y: startY + 3 * gap };
+                fixedPositions[14] = { x: leftStartX + 2 * gap, y: startY + 3 * gap };
+                fixedPositions[15] = { x: leftStartX + 3 * gap, y: startY + 3 * gap };
+                fixedPositions[16] = { x: leftStartX, y: startY + 4 * gap };
+                fixedPositions[17] = { x: leftStartX + gap, y: startY + 4 * gap };
+                fixedPositions[18] = { x: leftStartX + 2 * gap, y: startY + 4 * gap };
+                fixedPositions[19] = { x: leftStartX + 3 * gap, y: startY + 4 * gap };
+                
+                fixedPositions[20] = { x: rightStartX, y: startY };
+                fixedPositions[21] = { x: rightStartX + gap, y: startY };
+                fixedPositions[22] = { x: rightStartX + 2 * gap, y: startY };
+                fixedPositions[23] = { x: rightStartX + 3 * gap, y: startY };
+                fixedPositions[24] = { x: rightStartX, y: startY + gap };
+                fixedPositions[25] = { x: rightStartX + gap, y: startY + gap };
+                fixedPositions[26] = { x: rightStartX + 2 * gap, y: startY + gap };
+                fixedPositions[27] = { x: rightStartX + 3 * gap, y: startY + gap };
+                fixedPositions[28] = { x: rightStartX, y: startY + 2 * gap };
+                fixedPositions[29] = { x: rightStartX + gap, y: startY + 2 * gap };
+                fixedPositions[30] = { x: rightStartX + 2 * gap, y: startY + 2 * gap };
+                fixedPositions[31] = { x: rightStartX + 3 * gap, y: startY + 2 * gap };
+                fixedPositions[32] = { x: rightStartX, y: startY + 3 * gap };
+                fixedPositions[33] = { x: rightStartX + gap, y: startY + 3 * gap };
+                fixedPositions[34] = { x: rightStartX + 2 * gap, y: startY + 3 * gap };
+                fixedPositions[35] = { x: rightStartX, y: startY + 4 * gap };
+                fixedPositions[36] = { x: rightStartX + gap, y: startY + 4 * gap };
+                fixedPositions[37] = { x: rightStartX + 2 * gap, y: startY + 4 * gap };
+                fixedPositions[38] = { x: rightStartX + 3 * gap, y: startY + 4 * gap };
+                
+                const bottomStartY = 650;
+                const bottomStartX = leftStartX;
+                const bottomEndX = rightStartX + 3 * gap;
+                const bottomGap8 = (bottomEndX - bottomStartX) / 7;
+                
+                for (let col = 0; col < 8; col++) {
+                    fixedPositions[39 + col] = { x: bottomStartX + col * bottomGap8, y: bottomStartY };
+                }
+                
+                const bottomGap6 = (bottomEndX - bottomStartX) / 7;
+                const startX6 = bottomStartX + bottomGap6;
+                for (let col = 0; col < 6; col++) {
+                    fixedPositions[47 + col] = { x: startX6 + col * bottomGap6, y: bottomStartY + gap };
+                }
+                
+                fixedPositions[53] = { x: bottomStartX + 2 * bottomGap8, y: bottomStartY + gap * 2 };
+                fixedPositions[54] = { x: bottomStartX + 3 * bottomGap8, y: bottomStartY + gap * 2 };
+                fixedPositions[55] = { x: bottomStartX + 4 * bottomGap8, y: bottomStartY + gap * 2 };
+                fixedPositions[56] = { x: bottomStartX + 5 * bottomGap8, y: bottomStartY + gap * 2 };
+                
+                return tables.map(table => ({
+                    ...table,
+                    x: fixedPositions[table.number]?.x || 500,
+                    y: fixedPositions[table.number]?.y || 500
+                }));
+            };
+
+            const tablePositions = layoutTables(tables);
+
+            const handleTableHover = (table, event) => {
+                setHoveredGroup(table.tag);
+                setTooltip({
+                    show: true,
+                    x: event.clientX + 10,
+                    y: event.clientY + 10,
+                    text: `Bàn ${table.number} - ${table.tag}`
+                });
+            };
+
+            const handleTableLeave = () => {
+                setHoveredGroup(null);
+                setTooltip({ show: false, x: 0, y: 0, text: '' });
+            };
+
+            const handleLegendClick = (group) => {
+                if (hoveredGroup === group) {
+                    setHoveredGroup(null);
+                    setTooltip({ show: false, x: 0, y: 0, text: '' });
+                } else {
+                    setHoveredGroup(group);
+                    const tableNumbers = groupedTables[group] || [];
+                    const tableList = tableNumbers.sort((a, b) => a - b).join(', ');
+                    setTooltip({
+                        show: true,
+                        x: window.innerWidth / 2,
+                        y: 100,
+                        text: `${group}: Bàn ${tableList}`
+                    });
+                }
+            };
+
+            const getTableColor = (table) => {
+                return GROUP_COLORS[table.tag] || '#BDC3C7';
+            };
+
+            const getTableOpacity = (table) => {
+                if (hoveredGroup && table.tag === hoveredGroup) return 1;
+                if (hoveredGroup && table.tag !== hoveredGroup) return 0.3;
+                return 0.85;
+            };
+
+            return (
+                <div className="container">
+                    <h1>Sơ đồ bàn tiệc cưới</h1>
+                    <p className="subtitle">Tổng số: {TOTAL_TABLES} bàn | Trái: 19 bàn | Phải: 19 bàn | Dưới: 18 bàn | {Object.keys(groupedTables).length} nhóm</p>
+
+                    <div className="chart-wrapper">
+                        <div id="seating-chart">
+                            <svg width="1100" height="950" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 950" preserveAspectRatio="xMidYMid meet">
+                                <g>
+                                    <rect x="490" y="20" width="180" height="80" 
+                                          fill="#FF9A56" stroke="#E67E22" strokeWidth="3" rx="8"/>
+                                    <text x="580" y="65" textAnchor="middle" className="stage-text">
+                                        Sân Khấu
+                                    </text>
+                                    <rect x="525" y="100" width="35" height="25" fill="#FF9A56" stroke="#E67E22" strokeWidth="2"/>
+                                    <rect x="600" y="100" width="35" height="25" fill="#FF9A56" stroke="#E67E22" strokeWidth="2"/>
+                                </g>
+
+                                <rect x="527" y="125" width="106" height="480" fill="#CCCCCC" stroke="#999" strokeWidth="2"/>
+
+                                {[0, 1, 2, 3, 4, 5, 6].map(i => (
+                                    <g key={`deco-${i}`}>
+                                        <rect x="512" y={150 + i * 72} width="15" height="25" fill="#FF9A56"/>
+                                        <rect x="633" y={150 + i * 72} width="15" height="25" fill="#FF9A56"/>
+                                    </g>
+                                ))}
+
+                                <g>
+                                    <rect x="80" y="540" width="30" height="60" fill="#FF9A56"/>
+                                    <polygon points="125,560 125,580 155,570" fill="#FF9A56"/>
+                                </g>
+
+                                <rect x="80" y="200" width="35" height="80" fill="#FF9A56"/>
+                                <rect x="1045" y="150" width="35" height="80" fill="#FF9A56"/>
+                                <rect x="1045" y="350" width="35" height="80" fill="#FF9A56"/>
+                                <rect x="1045" y="820" width="35" height="80" fill="#FF9A56"/>
+
+                                {tablePositions.map(table => (
+                                    <g key={table.number}
+                                       onMouseEnter={(e) => handleTableHover(table, e)}
+                                       onMouseLeave={handleTableLeave}>
+                                        <circle
+                                            cx={table.x}
+                                            cy={table.y}
+                                            r="30"
+                                            fill={getTableColor(table)}
+                                            fillOpacity={getTableOpacity(table)}
+                                            stroke={hoveredGroup === table.tag ? '#333' : '#FF9A56'}
+                                            strokeWidth={hoveredGroup === table.tag ? 3 : 2}
+                                            style={{
+                                                transition: 'all 0.3s',
+                                                filter: hoveredGroup === table.tag ? 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))' : 'none'
+                                            }}
+                                        />
+                                        <text
+                                            x={table.x}
+                                            y={table.y + 5}
+                                            textAnchor="middle"
+                                            className="table-number"
+                                            style={{
+                                                opacity: getTableOpacity(table),
+                                                fontWeight: hoveredGroup === table.tag ? 'bold' : 'normal',
+                                                fontSize: '14px'
+                                            }}
+                                        >
+                                            {table.number}
+                                        </text>
+                                    </g>
+                                ))}
+                            </svg>
+                        </div>
+                    </div>
+
+                    <div className="legend">
+                        {Object.entries(groupedTables).sort().map(([group, tableNumbers]) => (
+                            <div 
+                                key={group} 
+                                className="legend-item"
+                                onClick={() => handleLegendClick(group)}
+                                onMouseEnter={() => setHoveredGroup(group)}
+                                onMouseLeave={() => {
+                                    setHoveredGroup(null);
+                                    setTooltip({ show: false, x: 0, y: 0, text: '' });
+                                }}
+                            >
+                                <div 
+                                    className="legend-color" 
+                                    style={{ backgroundColor: GROUP_COLORS[group] || '#BDC3C7' }}
+                                />
+                                <span className="legend-text">{group}</span>
+                                <span className="legend-count">{tableNumbers.length} bàn</span>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div 
+                        className={`tooltip ${tooltip.show ? 'show' : ''}`}
+                        style={{ left: tooltip.x, top: tooltip.y }}
+                    >
+                        {tooltip.text}
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<WeddingSeatingChart />, document.getElementById('root'));
+    </script>
+</body>
+</html>
