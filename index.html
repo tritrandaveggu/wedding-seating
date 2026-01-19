@@ -38,7 +38,7 @@
             background: white; 
             padding: 20px; 
             border-radius: 8px; 
-            margin-bottom: 30px; 
+            margin-bottom: 15px; 
         }
         #seating-chart { 
             display: flex; 
@@ -81,6 +81,10 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
             border-color: #2196F3;
         }
+        .legend-item.active {
+            border-color: #4CAF50;
+            background: #f0f9f0;
+        }
         .legend-color { 
             width: 30px; 
             height: 30px; 
@@ -102,14 +106,18 @@
             position: fixed; 
             background: rgba(0, 0, 0, 0.9); 
             color: white; 
-            padding: 8px 12px; 
+            padding: 10px 15px; 
             border-radius: 6px; 
-            font-size: 13px; 
+            font-size: 14px; 
             pointer-events: none; 
             z-index: 1000; 
             white-space: nowrap; 
             box-shadow: 0 4px 12px rgba(0,0,0,0.3); 
             display: none;
+            max-width: 90vw;
+            word-wrap: break-word;
+            white-space: normal;
+            text-align: center;
         }
         .tooltip.show {
             display: block;
@@ -120,7 +128,11 @@
             body { padding: 10px; }
             .container { padding: 15px; }
             h1 { font-size: 22px; }
-            .subtitle { font-size: 12px; }
+            .subtitle { font-size: 12px; margin-bottom: 15px; }
+            .chart-wrapper { 
+                padding: 10px; 
+                margin-bottom: 10px; 
+            }
             .legend { 
                 grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); 
                 gap: 8px; 
@@ -129,6 +141,13 @@
             .legend-item { padding: 10px; }
             .legend-text { font-size: 12px; }
             #seating-chart { padding-bottom: 10px; }
+            .tooltip {
+                font-size: 13px;
+                padding: 8px 12px;
+                left: 50% !important;
+                transform: translateX(-50%);
+                top: 80px !important;
+            }
         }
     </style>
 </head>
@@ -332,16 +351,29 @@
 
             const handleLegendClick = (group) => {
                 if (hoveredGroup === group) {
+                    // Tap lại lần 2 → Tắt highlight
                     setHoveredGroup(null);
                     setTooltip({ show: false, x: 0, y: 0, text: '' });
                 } else {
+                    // Tap lần 1 → Highlight và scroll lên
                     setHoveredGroup(group);
                     const tableNumbers = groupedTables[group] || [];
                     const tableList = tableNumbers.sort((a, b) => a - b).join(', ');
+                    
+                    // Scroll lên xem sơ đồ (mobile)
+                    const chartElement = document.querySelector('.chart-wrapper');
+                    if (chartElement) {
+                        chartElement.scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'start' 
+                        });
+                    }
+                    
+                    // Hiển thị tooltip cố định trên mobile
                     setTooltip({
                         show: true,
                         x: window.innerWidth / 2,
-                        y: 100,
+                        y: 80,
                         text: `${group}: Bàn ${tableList}`
                     });
                 }
@@ -434,12 +466,15 @@
                         {Object.entries(groupedTables).sort().map(([group, tableNumbers]) => (
                             <div 
                                 key={group} 
-                                className="legend-item"
+                                className={`legend-item ${hoveredGroup === group ? 'active' : ''}`}
                                 onClick={() => handleLegendClick(group)}
                                 onMouseEnter={() => setHoveredGroup(group)}
                                 onMouseLeave={() => {
-                                    setHoveredGroup(null);
-                                    setTooltip({ show: false, x: 0, y: 0, text: '' });
+                                    // Chỉ clear nếu không phải mobile (để giữ highlight sau khi tap)
+                                    if (window.innerWidth > 768) {
+                                        setHoveredGroup(null);
+                                        setTooltip({ show: false, x: 0, y: 0, text: '' });
+                                    }
                                 }}
                             >
                                 <div 
