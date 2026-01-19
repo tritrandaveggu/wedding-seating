@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Sơ đồ bàn tiệc cưới</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: #f5f5f5; 
+            padding: 15px; 
+        }
+        .container { 
+            max-width: 1400px; 
+            margin: 0 auto; 
+            background: white; 
+            border-radius: 10px; 
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1); 
+            padding: 20px; 
+        }
+        h1 { 
+            text-align: center; 
+            color: #333; 
+            margin-bottom: 8px; 
+            font-size: 26px; 
+        }
+        .subtitle { 
+            text-align: center; 
+            color: #666; 
+            margin-bottom: 15px; 
+            font-size: 13px; 
+        }
+        .chart-wrapper { 
+            background: #fafafa; 
+            padding: 10px; 
+            border-radius: 8px; 
+            margin-bottom: 12px; 
+            overflow: hidden;
+        }
+        #seating-chart { 
+            display: flex; 
+            justify-content: center; 
+        }
+        #seating-chart svg {
+            width: 100%;
+            height: auto;
+        }
+        .stage-text { 
+            font-family: Arial, sans-serif; 
+            font-size: 24px; 
+            fill: white; 
+        }
+        .table-number { 
+            font-size: 14px; 
+            font-weight: bold; 
+            fill: #333; 
+        }
+        .legend { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); 
+            gap: 10px; 
+            padding: 15px; 
+            background: #f9f9f9; 
+            border-radius: 8px; 
+        }
+        .legend-item { 
+            display: flex; 
+            align-items: center; 
+            gap: 10px; 
+            padding: 12px; 
+            background: white; 
+            border-radius: 6px; 
+            transition: all 0.2s; 
+            cursor: pointer;
+            border: 2px solid #e0e0e0;
+            user-select: none;
+            -webkit-tap-highlight-color: rgba(0,0,0,0.1);
+            touch-action: manipulation;
+        }
+        .legend-item:active { 
+            transform: scale(0.98);
+        }
+        .legend-item.selected {
+            border-color: #4CAF50;
+            background: #f1f8f4;
+            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+        }
+        .legend-color { 
+            width: 32px; 
+            height: 32px; 
+            border-radius: 50%; 
+            border: 2px solid #ddd; 
+            flex-shrink: 0; 
+        }
+        .legend-text { 
+            font-size: 13px; 
+            color: #333; 
+            font-weight: 500; 
+            flex: 1;
+        }
+        .legend-count { 
+            font-size: 12px; 
+            color: #666; 
+            font-weight: 600;
+        }
+        .tooltip-mobile { 
+            position: sticky;
+            top: 0;
+            background: #4CAF50;
+            color: white; 
+            padding: 12px 15px; 
+            border-radius: 6px; 
+            font-size: 13px; 
+            z-index: 1000; 
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            margin-bottom: 10px;
+            display: none;
+        }
+        .tooltip-mobile.show {
+            display: block;
+        }
+        
+        /* Mobile optimizations */
+        @media (max-width: 768px) {
+            body { padding: 8px; }
+            .container { 
+                padding: 12px; 
+                border-radius: 8px;
+            }
+            h1 { 
+                font-size: 20px; 
+                margin-bottom: 5px;
+            }
+            .subtitle { 
+                font-size: 11px; 
+                margin-bottom: 10px; 
+            }
+            .chart-wrapper { 
+                padding: 8px; 
+                margin-bottom: 8px;
+            }
+            #seating-chart svg {
+                max-height: 55vh;
+            }
+            .legend { 
+                grid-template-columns: 1fr 1fr;
+                gap: 6px; 
+                padding: 10px;
+            }
+            .legend-item { 
+                padding: 10px 8px;
+                gap: 8px;
+            }
+            .legend-color {
+                width: 28px;
+                height: 28px;
+            }
+            .legend-text { 
+                font-size: 11px; 
+            }
+            .legend-count {
+                font-size: 11px;
+            }
+            .tooltip-mobile {
+                font-size: 12px;
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useRef } = React;
+
+        const TABLE_CONFIG = {
+            "1": "Gia đình nhà trai",
+            "2": "Gia đình nhà trai",
+            "3": "Gia đình nhà trai",
+            "4": "Gia đình nhà trai",
+            "5": "Gia đình nhà trai",
+            "6": "Gia đình nhà trai",
+            "7": "Gia đình nhà gái",
+            "8": "Gia đình nhà gái",
+            "9": "Bàn Dự Phòng",
+            "10": "Gia đình nhà trai",
+            "11": "Gia đình ACE Họ nhà gái",
+            "12": "Gia đình ACE Họ nhà gái",
+            "13": "Khách Ba Mẹ CR",
+            "14": "Khách Ba Mẹ CR",
+            "15": "Gia đình ACE Họ nhà gái",
+            "16": "JSVN",
+            "17": "JSVN",
+            "18": "A9",
+            "19": "A9",
+            "20": "Bạn Khiêu Vũ",
+            "21": "Bạn Khiêu Vũ",
+            "22": "Bạn Mẹ CD",
+            "23": "Bạn Mẹ CD",
+            "24": "Trường BTCN",
+            "25": "Trường BTCN",
+            "26": "Bạn Ba CD",
+            "27": "Bạn Ba CD",
+            "28": "Trường BTCN",
+            "29": "VK CPC + TN",
+            "30": "VK CPC + TN",
+            "31": "Bạn Ba CD",
+            "32": "Bạn Ba Mẹ CR",
+            "33": "Bạn Ba Mẹ CR",
+            "34": "VK CPC + TN",
+            "35": "Học Trò Ba Mẹ CR",
+            "36": "Học Trò Ba Mẹ CR",
+            "37": "Học Trò Ba Mẹ CR",
+            "38": "Học Trò Ba Mẹ CR",
+            "39": "AdC-BAC",
+            "40": "Bạn ĐH Chú Rể",
+            "41": "Glints",
+            "42": "NodeFlair",
+            "43": "First Alliances",
+            "44": "CUC",
+            "45": "Học Trò Ba Mẹ CR",
+            "46": "Học Trò Ba Mẹ CR",
+            "47": "Bạn ĐH Chú Rể",
+            "48": "Glints",
+            "49": "NodeFlair",
+            "50": "First Alliances",
+            "51": "CUC",
+            "52": "Bàn Dự Phòng",
+            "53": "Bạn Cấp Ba Chú Rể",
+            "54": "Bạn Cấp Ba Chú Rể",
+            "55": "CUC",
+            "56": "CUC"
+        };
+
+        const GROUP_COLORS = {
+            "Gia đình nhà trai": "#FF6B6B",
+            "Gia đình nhà gái": "#4ECDC4",
+            "Chưa phân loại": "#BDC3C7",
+            "Bàn Dự Phòng": "#E0E0E0",
+            "Gia đình ACE Họ nhà gái": "#9B59B6",
+            "Bạn Khiêu Vũ": "#DDA15E",
+            "Bạn Mẹ CD": "#E91E63",
+            "Bạn Ba CD": "#BC6C25",
+            "VK CPC + TN": "#74a47c",
+            "Trường BTCN": "#610dfd",
+            "Bạn ĐH Chú Rể": "#A8E6CF",
+            "A9": "#FFD93D",
+            "Bạn Cấp Ba Chú Rể": "#F7DC6F",
+            "JSVN": "#FFA07A",
+            "Glints": "#0c6e56",
+            "NodeFlair": "#6BCF7F",
+            "First Alliances": "#FFA07A",
+            "CUC": "#ee3f3f",
+            "AdC-BAC": "#1e98cc",
+            "Khách Ba Mẹ CR": "#ff6bd0",
+            "Học Trò Ba Mẹ CR": "#b6ff47",
+            "Bạn Ba Mẹ CR": "#497bdf"
+        };
+
+        const TOTAL_TABLES = 56;
+
+        const WeddingSeatingChart = () => {
+            const [selectedGroup, setSelectedGroup] = useState(null);
+            const [showTooltip, setShowTooltip] = useState(false);
+            const [tooltipText, setTooltipText] = useState('');
+            const chartRef = useRef(null);
+            
+            const tables = Array.from({ length: TOTAL_TABLES }, (_, i) => ({
+                number: i + 1,
+                tag: TABLE_CONFIG[String(i + 1)] || "Chưa phân loại"
+            }));
+
+            const groupedTables = tables.reduce((acc, table) => {
+                if (!acc[table.tag]) acc[table.tag] = [];
+                acc[table.tag].push(table.number);
+                return acc;
+            }, {});
+
+            const layoutTables = (tables) => {
+                const fixedPositions = {};
+                const gap = 72;
+                const leftStartX = 165;
+                const rightStartX = 760;
+                const startY = 150;
+                
+                // Left side tables (1-19)
+                fixedPositions[1] = { x: leftStartX, y: startY };
+                fixedPositions[2] = { x: leftStartX + gap, y: startY };
+                fixedPositions[3] = { x: leftStartX + 2 * gap, y: startY };
+                fixedPositions[4] = { x: leftStartX + 3 * gap, y: startY };
+                fixedPositions[5] = { x: leftStartX, y: startY + gap };
+                fixedPositions[6] = { x: leftStartX + gap, y: startY + gap };
+                fixedPositions[7] = { x: leftStartX + 2 * gap, y: startY + gap };
+                fixedPositions[8] = { x: leftStartX + 3 * gap, y: startY + gap };
+                fixedPositions[9] = { x: leftStartX, y: startY + 2.5 * gap };
+                fixedPositions[10] = { x: leftStartX + gap, y: startY + 2 * gap };
+                fixedPositions[11] = { x: leftStartX + 2 * gap, y: startY + 2 * gap };
+                fixedPositions[12] = { x: leftStartX + 3 * gap, y: startY + 2 * gap };
+                fixedPositions[13] = { x: leftStartX + gap, y: startY + 3 * gap };
+                fixedPositions[14] = { x: leftStartX + 2 * gap, y: startY + 3 * gap };
+                fixedPositions[15] = { x: leftStartX + 3 * gap, y: startY + 3 * gap };
+                fixedPositions[16] = { x: leftStartX, y: startY + 4 * gap };
+                fixedPositions[17] = { x: leftStartX + gap, y: startY + 4 * gap };
+                fixedPositions[18] = { x: leftStartX + 2 * gap, y: startY + 4 * gap };
+                fixedPositions[19] = { x: leftStartX + 3 * gap, y: startY + 4 * gap };
+                
+                // Right side tables (20-38)
+                fixedPositions[20] = { x: rightStartX, y: startY };
+                fixedPositions[21] = { x: rightStartX + gap, y: startY };
+                fixedPositions[22] = { x: rightStartX + 2 * gap, y: startY };
+                fixedPositions[23] = { x: rightStartX + 3 * gap, y: startY };
+                fixedPositions[24] = { x: rightStartX, y: startY + gap };
+                fixedPositions[25] = { x: rightStartX + gap, y: startY + gap };
+                fixedPositions[26] = { x: rightStartX + 2 * gap, y: startY + gap };
+                fixedPositions[27] = { x: rightStartX + 3 * gap, y: startY + gap };
+                fixedPositions[28] = { x: rightStartX, y: startY + 2 * gap };
+                fixedPositions[29] = { x: rightStartX + gap, y: startY + 2 * gap };
+                fixedPositions[30] = { x: rightStartX + 2 * gap, y: startY + 2 * gap };
+                fixedPositions[31] = { x: rightStartX + 3 * gap, y: startY + 2 * gap };
+                fixedPositions[32] = { x: rightStartX, y: startY + 3 * gap };
+                fixedPositions[33] = { x: rightStartX + gap, y: startY + 3 * gap };
+                fixedPositions[34] = { x: rightStartX + 2 * gap, y: startY + 3 * gap };
+                fixedPositions[35] = { x: rightStartX, y: startY + 4 * gap };
+                fixedPositions[36] = { x: rightStartX + gap, y: startY + 4 * gap };
+                fixedPositions[37] = { x: rightStartX + 2 * gap, y: startY + 4 * gap };
+                fixedPositions[38] = { x: rightStartX + 3 * gap, y: startY + 4 * gap };
+                
+                // Bottom tables (39-56)
+                const bottomStartY = 580;
+                const bottomStartX = leftStartX;
+                const bottomEndX = rightStartX + 3 * gap;
+                const bottomGap8 = (bottomEndX - bottomStartX) / 7;
+                
+                for (let col = 0; col < 8; col++) {
+                    fixedPositions[39 + col] = { x: bottomStartX + col * bottomGap8, y: bottomStartY };
+                }
+                
+                const startX6 = bottomStartX + bottomGap8;
+                for (let col = 0; col < 6; col++) {
+                    fixedPositions[47 + col] = { x: startX6 + col * bottomGap8, y: bottomStartY + gap };
+                }
+                
+                fixedPositions[53] = { x: bottomStartX + 2 * bottomGap8, y: bottomStartY + gap * 2 };
+                fixedPositions[54] = { x: bottomStartX + 3 * bottomGap8, y: bottomStartY + gap * 2 };
+                fixedPositions[55] = { x: bottomStartX + 4 * bottomGap8, y: bottomStartY + gap * 2 };
+                fixedPositions[56] = { x: bottomStartX + 5 * bottomGap8, y: bottomStartY + gap * 2 };
+                
+                return tables.map(table => ({
+                    ...table,
+                    x: fixedPositions[table.number]?.x || 500,
+                    y: fixedPositions[table.number]?.y || 500
+                }));
+            };
+
+            const tablePositions = layoutTables(tables);
+
+            const handleLegendClick = (group) => {
+                if (selectedGroup === group) {
+                    // Tap lần 2 → Tắt
+                    setSelectedGroup(null);
+                    setShowTooltip(false);
+                } else {
+                    // Tap lần 1 → Highlight
+                    setSelectedGroup(group);
+                    const tableNumbers = groupedTables[group] || [];
+                    const tableList = tableNumbers.sort((a, b) => a - b).join(', ');
+                    setTooltipText(`${group}: Bàn ${tableList}`);
+                    setShowTooltip(true);
+                    
+                    // Scroll lên đầu trang
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            };
+
+            const getTableColor = (table) => {
+                return GROUP_COLORS[table.tag] || '#BDC3C7';
+            };
+
+            const getTableOpacity = (table) => {
+                if (selectedGroup && table.tag === selectedGroup) return 1;
+                if (selectedGroup && table.tag !== selectedGroup) return 0.25;
+                return 0.85;
+            };
+
+            return (
+                <div className="container">
+                    <h1>Sơ đồ bàn tiệc cưới</h1>
+                    <p className="subtitle">Tổng: {TOTAL_TABLES} bàn | {Object.keys(groupedTables).length} nhóm</p>
+
+                    {showTooltip && (
+                        <div className="tooltip-mobile show">
+                            {tooltipText}
+                        </div>
+                    )}
+
+                    <div className="chart-wrapper" ref={chartRef}>
+                        <div id="seating-chart">
+                            <svg width="1100" height="750" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 750" preserveAspectRatio="xMidYMid meet">
+                                {/* Stage */}
+                                <g>
+                                    <rect x="490" y="20" width="180" height="80" 
+                                          fill="#FF9A56" stroke="#E67E22" strokeWidth="3" rx="8"/>
+                                    <text x="580" y="65" textAnchor="middle" className="stage-text">
+                                        Sân Khấu
+                                    </text>
+                                    <rect x="525" y="100" width="35" height="25" fill="#FF9A56" stroke="#E67E22" strokeWidth="2"/>
+                                    <rect x="600" y="100" width="35" height="25" fill="#FF9A56" stroke="#E67E22" strokeWidth="2"/>
+                                </g>
+
+                                {/* Center aisle */}
+                                <rect x="527" y="125" width="106" height="480" fill="#CCCCCC" stroke="#999" strokeWidth="2"/>
+
+                                {/* Decorations */}
+                                {[0, 1, 2, 3, 4, 5, 6].map(i => (
+                                    <g key={`deco-${i}`}>
+                                        <rect x="512" y={150 + i * 72} width="15" height="25" fill="#FF9A56"/>
+                                        <rect x="633" y={150 + i * 72} width="15" height="25" fill="#FF9A56"/>
+                                    </g>
+                                ))}
+
+                                {/* DJ booth */}
+                                <g>
+                                    <rect x="80" y="540" width="30" height="60" fill="#FF9A56"/>
+                                    <polygon points="125,560 125,580 155,570" fill="#FF9A56"/>
+                                </g>
+
+                                {/* Side decorations */}
+                                <rect x="80" y="200" width="35" height="80" fill="#FF9A56"/>
+                                <rect x="1045" y="150" width="35" height="80" fill="#FF9A56"/>
+                                <rect x="1045" y="350" width="35" height="80" fill="#FF9A56"/>
+                                <rect x="1045" y="620" width="35" height="80" fill="#FF9A56"/>
+
+                                {/* Tables */}
+                                {tablePositions.map(table => (
+                                    <g key={table.number}>
+                                        <circle
+                                            cx={table.x}
+                                            cy={table.y}
+                                            r="30"
+                                            fill={getTableColor(table)}
+                                            fillOpacity={getTableOpacity(table)}
+                                            stroke={selectedGroup === table.tag ? '#333' : '#FF9A56'}
+                                            strokeWidth={selectedGroup === table.tag ? 3 : 2}
+                                            style={{
+                                                transition: 'all 0.3s',
+                                                filter: selectedGroup === table.tag ? 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))' : 'none'
+                                            }}
+                                        />
+                                        <text
+                                            x={table.x}
+                                            y={table.y + 5}
+                                            textAnchor="middle"
+                                            className="table-number"
+                                            style={{
+                                                opacity: getTableOpacity(table),
+                                                fontWeight: selectedGroup === table.tag ? 'bold' : 'normal'
+                                            }}
+                                        >
+                                            {table.number}
+                                        </text>
+                                    </g>
+                                ))}
+                            </svg>
+                        </div>
+                    </div>
+
+                    <div className="legend">
+                        {Object.entries(groupedTables).sort().map(([group, tableNumbers]) => (
+                            <div 
+                                key={group} 
+                                className={`legend-item ${selectedGroup === group ? 'selected' : ''}`}
+                                onClick={() => handleLegendClick(group)}
+                            >
+                                <div 
+                                    className="legend-color" 
+                                    style={{ backgroundColor: GROUP_COLORS[group] || '#BDC3C7' }}
+                                />
+                                <span className="legend-text">{group}</span>
+                                <span className="legend-count">{tableNumbers.length} bàn</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<WeddingSeatingChart />, document.getElementById('root'));
+    </script>
+</body>
+</html>
